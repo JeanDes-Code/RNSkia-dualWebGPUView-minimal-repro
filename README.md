@@ -29,27 +29,30 @@ App launches and renders both a Skia Canvas and a react-native-wgpu Canvas.
 
 ## Actual
 
-Build produces a compiler warning about duplicate dictionary keys:
+Build fails at the linker stage with 3 duplicate ObjC symbols:
 
 ```
-⚠️  (ios/build/generated/ios/RCTThirdPartyComponentsProvider.mm:25:3)
+❌  duplicate symbol '_OBJC_METACLASS_$_WebGPUView' in
+┌─ libreact-native-skia.a[28](WebGPUView.o)
+└─ libreact-native-wgpu.a[32](WebGPUView.o)
 
-  24 |          @"WebGPUView": NSClassFromString(@"WebGPUView"), // @shopify/react-native-skia
-> 25 |          @"WebGPUView": NSClassFromString(@"WebGPUView"), // react-native-wgpu
-     |          ^ duplicate key in dictionary literal [-Wobjc-dictionary-duplicate-keys]
+❌  duplicate symbol '_OBJC_CLASS_$_WebGPUView' in
+┌─ libreact-native-skia.a[28](WebGPUView.o)
+└─ libreact-native-wgpu.a[32](WebGPUView.o)
+
+❌  duplicate symbol 'WebGPUViewCls()' in
+┌─ libreact-native-skia.a[28](WebGPUView.o)
+└─ libreact-native-wgpu.a[32](WebGPUView.o)
+
+❌  ld: 3 duplicate symbols
+❌  clang: error: linker command failed with exit code 1
 ```
 
-Both native `WebGPUView.mm` are compiled from both packages:
+The build also emits ~1200 linker warnings about Skia's prebuilt static libraries targeting a newer iOS-simulator version than the project minimum:
 
 ```
-› Compiling @shopify/react-native-skia Pods/react-native-skia » WebGPUView.mm
-› Compiling react-native-wgpu Pods/react-native-wgpu » WebGPUView.mm
-```
-
-The app silently fails to open (native-level class collision), or if it does open, crashes with:
-
-```
-Invariant Violation: Tried to register two views with the same name WebGPUView
+⚠️  ld: object file (.../XCFrameworkIntermediates/react-native-skia/libsvg.a[arm64][...])
+    was built for newer 'iOS-simulator' version (16.0) than being linked (15.1)
 ```
 
 ## Root cause
